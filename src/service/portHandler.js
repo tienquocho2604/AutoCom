@@ -39,7 +39,7 @@ const initializeModem = (modem) => {
                 if(result && result.status == "success"){
                     return resolve({
                         state: "success",
-                        message: "Đã mở cổng"
+                        message: "Chờ cắm sim"
                     })
                 }else{
                     return reject({
@@ -61,10 +61,9 @@ const checkCPIN = (modem) => {
     return new Promise((resolve, reject) => {
         modem.executeCommand("AT+CPIN?", (result, error) => {
             if(error){
-                console.log(error)
                 return reject({
                     state: "fail",
-                    message: "Cổng đóng hoặc sim chưa sẵn sàng"
+                    message: "Cổng đóng"
                 })
             }
             if(result && result.status == "success"){
@@ -78,7 +77,7 @@ const checkCPIN = (modem) => {
             }else{
                 return reject({
                     state: "fail",
-                    message: "Cổng đóng hoặc sim chưa sẵn sàng"
+                    message: "Cổng đóng"
                 })
             }
         }, false, 5000)
@@ -105,7 +104,8 @@ const deleteAllSMS = (modem) => {
             modem.deleteAllSimMessages((result) => {
                 if(result && result.status == "success"){
                     return resolve({
-                        state: "success"
+                        state: "success",
+                        message: "Xóa tin nhắn thành công"
                     })
                 }else{
                     return resolve({
@@ -119,6 +119,88 @@ const deleteAllSMS = (modem) => {
             return resolve({
                 state: "fail",
                 message: "Xoá tin nhắn không thành công"
+            })
+        }
+    })
+}
+
+const getIMEI = (modem) => {
+    return new Promise((resolve, reject) => {
+        try{
+            let parts = modem.executeCommand("AT+CGSN", () => {}, false, 5000)
+            let timeout = setTimeout(() => {
+                parts.logic = undefined
+                return reject({
+                    state: "fail",
+                    message: "Lấy IMEI không thành công"
+                })
+            }, 5000)
+            parts.logic = (part) => {
+                if(/([0-9]*)/.test(part)){
+                    clearTimeout(timeout)
+                    let matches = /([0-9]*)/.test(part)
+                    return resolve({
+                        state: "success",
+                        message: "Lấy IMEI thành công",
+                        payload: {
+                            imei: matches[1]
+                        }
+                    })
+                }else if(part == "ERROR"){
+                    clearTimeout(timeout)
+                    return reject({
+                        state: "fail",
+                        message: "Lấy IMEI không thành công"
+                    })
+                }
+            }
+        }catch(error){
+            return reject({
+                state: "fail",
+                message: "Lấy IMEI không thành công"
+            })
+        }
+    })
+}
+
+const getSignal = (modem) => {
+    return new Promise((resolve, reject) => {
+        try{
+            setTimeout(() => {
+                return reject({
+                    state: "fail",
+                    message: "Lấy signal không thành công"
+                })
+            }, 10000)
+            modem.executeCommand("AT+CSQ", (result, error) => {
+                if(error){
+                    return reject({
+                        state: "fail",
+                        message: "Lấy signal không thành công"
+                    })
+                }
+                if(result && result.status == "success"){
+                    if(/([0-9,]*)/.test(result.data.result)){
+                        let matches = /([0-9,]*)/.exec(result.data.result)
+                        return resolve({
+                            state: "success",
+                            message: "Lấy signal thành công",
+                            payload: {
+                                signal: matches[1]
+                            }
+                        })
+                    }
+                }else{
+                    return reject({
+                        state: "fail",
+                        message: "Lấy signal không thành công"
+                    })
+                }
+            }, false, 5000)
+        }catch(error){
+            return reject({
+                state: "fail",
+                message: "Lấy signal không thành công"
             })
         }
     })
@@ -181,6 +263,7 @@ const getOperator = (modem) => {
                     if(result.data.result.includes("Viettel")){
                         return resolve({
                             state: "success",
+                            message: "Nhận dạng nhà mạng thành công",
                             payload: {
                                 operator: "Viettel"
                             }
@@ -188,6 +271,7 @@ const getOperator = (modem) => {
                     }else if(result.data.result.includes("Mobifone")){
                         return resolve({
                             state: "success",
+                            message: "Nhận dạng nhà mạng thành công",
                             payload: {
                                 operator: "Mobifone"
                             }
@@ -195,6 +279,7 @@ const getOperator = (modem) => {
                     }else if(result.data.result.includes("VINAPHONE")){
                         return resolve({
                             state: "success",
+                            message: "Nhận dạng nhà mạng thành công",
                             payload: {
                                 operator: "Vinaphone"
                             }
@@ -202,6 +287,7 @@ const getOperator = (modem) => {
                     }else if(result.data.result.includes("Vietnamobile")){
                         return resolve({
                             state: "success",
+                            message: "Nhận dạng nhà mạng thành công",
                             payload: {
                                 operator: "Vietnamobile"
                             }
@@ -502,6 +588,14 @@ const loadPort = (portIndex) => {
             return deleteAllSMS(global.ports[portIndex].modem)
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
+            return getSignal(global.ports[portIndex].modem)
+        }).then((result) => {
+            global.ports[portIndex].set("statement", result.message)
+            global.ports[portIndex].set("signal", result.payload.signal)
+            return getIMEI(global.ports[portIndex].modem)
+        }).then((result) => {
+            global.ports[portIndex].set("statement", result.message)
+            global.ports[portIndex].set("imei", result.payload.iccid)
             return getICCID(global.ports[portIndex].modem)
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
@@ -582,12 +676,15 @@ const loadPorts = () => {
                         numod: port.numod,
                         imei: "",
                         iccid: "",
+                        signal: "",
                         operator: "",
                         msisdn: "",
+                        balance: "",
                         modem: modem,
                         state: "closed",
                         status: "pending",
                         statement: "Cổng đóng",
+                        lock: false,
                         retries: 0,
                     }) - 1
                     global.ports[portIndex].index = portIndex
@@ -600,29 +697,43 @@ const loadPorts = () => {
                         global.ports[portIndex].status = "pending"
                         return global.ports[portIndex][propName]
                     }
+                    global.ports[portIndex].close = () => {
+                        global.ports[portIndex].imei = ""
+                        global.ports[portIndex].iccid = ""
+                        global.ports[portIndex].operator = ""
+                        global.ports[portIndex].msisdn = ""
+                        global.ports[portIndex].balance = ""
+                        global.ports[portIndex].state = "closed"
+                        global.ports[portIndex].statement = "Cổng đóng"
+                    }
                     let selfLoad = async() => {
-                        if(global.ports[portIndex].state == "closed"){
-                            return
+                        if(global.ports[portIndex].lock){
+                            setTimeout(() => {
+                                return selfLoad()
+                            }, 5000)
                         }
                         global.ports[portIndex].set("retries", global.ports[portIndex].retries + 1)
+                        global.ports[portIndex].set("lock", true)
                         await loadPort(portIndex)
                         .then(() => {
-                            global.ports[portIndex].set("state", "inserted")
+                            global.ports[portIndex].set("state", "registed")
+                            global.ports[portIndex].set("lock", false)
                         })
                         .catch(() => {
-                            global.ports[portIndex].set("state", "refused")
+                            global.ports[portIndex].close()
+                            global.ports[portIndex].set("lock", false)
                             setTimeout(() => {
                                 return selfLoad()
                             }, 5000)
                         })
                     }
-                    global.ports[portIndex].modem.on("onPutIn", () => {
-                        console.log("OK")
-                        global.ports[portIndex].set("state", "inserted")
+                    selfLoad()
+                    global.ports[portIndex].modem.on("onPutOut", () => {
+                        global.ports[portIndex].close()
                         selfLoad()
                     })
-                    global.ports[portIndex].modem.on("onPutOut", () => {
-                        global.ports[portIndex].set("state", "closed")
+                    global.ports[portIndex].modem.on("onPutIn", () => {
+                        global.ports[portIndex].set("statement", "Đã nhận sim, vui lòng chờ")
                     })
                 })
             }catch (error){
