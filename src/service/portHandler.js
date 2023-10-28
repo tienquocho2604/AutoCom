@@ -64,34 +64,6 @@ const initializeModem = (port) => {
     })
 }
 
-const checkCPIN = (port) => {
-    let modem = port.modem
-    return new Promise((resolve, reject) => {
-        modem.executeCommand("AT+CPIN?", (result, error) => {
-            if(error){
-                return reject({
-                    state: "fail",
-                    message: "Cổng đóng"
-                })
-            }
-            if(result && result.status == "success"){
-                if(/READY/.test(result.data.result)){
-                    console.log(result)
-                    return resolve({
-                        state: "success",
-                        message: "Đã cắm sim"
-                    })
-                }
-            }else{
-                return reject({
-                    state: "fail",
-                    message: "Cổng đóng"
-                })
-            }
-        }, false, 5000)
-    })
-}
-
 const cancelUSSD = (port) => {
     let modem = port.modem
     try{
@@ -369,7 +341,7 @@ const getOwnNumber = (port) => {
     let modem = port.modem
     let operator = port.operator
     return new Promise(async(resolve, reject) => {
-        await cancelUSSD(modem)
+        await cancelUSSD(port)
         try{
             if(operator == "Viettel"){
                 modem.executeCommand(`AT+CUSD=1,"*098#",15`, async(result, error) => {
@@ -495,7 +467,7 @@ const getBalance = (port) => {
     let modem = port.modem
     let operator = port.operator
     return new Promise(async(resolve, reject) => {
-        await cancelUSSD(modem)
+        await cancelUSSD(port)
         try{
             if(operator == "Viettel"){
                 let parts = modem.executeCommand(`AT+CUSD=1,"*101#",15`, () => {})
@@ -507,7 +479,6 @@ const getBalance = (port) => {
                     })
                 }, 30000)
                 parts.logic = (part) => {
-                    console.log(part)
                     if(part.includes("TKG")){
                         clearTimeout(timeout)
                         part = part.replace(".", "")
@@ -645,6 +616,7 @@ const loadPort = (portIndex) => {
             return deleteAllSMS(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
+            global.ports[portIndex].set("smsCounter", 0)
             return getSignal(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
@@ -767,7 +739,6 @@ const loadPorts = async() => {
                         global.ports[portIndex].statement = "Cổng đóng"
                     }
                     global.ports[portIndex].clear = () => {
-                        global.ports[portIndex].imei = ""
                         global.ports[portIndex].iccid = ""
                         global.ports[portIndex].operator = ""
                         global.ports[portIndex].msisdn = ""
