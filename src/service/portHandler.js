@@ -20,7 +20,14 @@ const options = {
     logger: ""
 }
 
-const initializeModem = (modem) => {
+const initializeModem = (port) => {
+    let modem = port.modem
+    if(port.isInitial){
+        return Promise.resolve({
+            state: "success",
+            message: ""
+        })
+    }
     return new Promise((resolve, reject) => {
         try{
             modem.initializeModem((result, error) => {
@@ -57,7 +64,8 @@ const initializeModem = (modem) => {
     })
 }
 
-const checkCPIN = (modem) => {
+const checkCPIN = (port) => {
+    let modem = port.modem
     return new Promise((resolve, reject) => {
         modem.executeCommand("AT+CPIN?", (result, error) => {
             if(error){
@@ -84,7 +92,8 @@ const checkCPIN = (modem) => {
     })
 }
 
-const cancelUSSD = (modem) => {
+const cancelUSSD = (port) => {
+    let modem = port.modem
     try{
         modem.executeCommand(`AT+CUSD=2\n`, (result, error) => {
             return Promise.resolve({
@@ -92,13 +101,15 @@ const cancelUSSD = (modem) => {
             })
         }, false, 10000)
     }catch(error) {
+        console.log(error)
         return Promise.resolve({
             state: "sucess"
         })
     }
 }
 
-const deleteAllSMS = (modem) => {
+const deleteAllSMS = (port) => {
+    let modem = port.modem
     return new Promise((resolve, reject) => {
         try{
             modem.deleteAllSimMessages((result) => {
@@ -124,21 +135,31 @@ const deleteAllSMS = (modem) => {
     })
 }
 
-const getIMEI = (modem) => {
+const getIMEI = (port) => {
+    if(port.imei){
+        return Promise.resolve({
+            state: "success",
+            message: "",
+            payload: {
+                imei: port.imei
+            }
+        })
+    }
+    let modem = port.modem
     return new Promise((resolve, reject) => {
         try{
-            let parts = modem.executeCommand("AT+CGSN", () => {}, false, 5000)
+            let parts = modem.executeCommand("AT+CGSN", () => {}, false, 10000)
             let timeout = setTimeout(() => {
                 parts.logic = undefined
                 return reject({
                     state: "fail",
                     message: "Lấy IMEI không thành công"
                 })
-            }, 5000)
+            }, 10000)
             parts.logic = (part) => {
-                if(/([0-9]*)/.test(part)){
+                if(/(\d+)/.test(part)){
                     clearTimeout(timeout)
-                    let matches = /([0-9]*)/.test(part)
+                    let matches = /(\d+)/.exec(part)
                     return resolve({
                         state: "success",
                         message: "Lấy IMEI thành công",
@@ -163,7 +184,8 @@ const getIMEI = (modem) => {
     })
 }
 
-const getSignal = (modem) => {
+const getSignal = (port) => {
+    let modem = port.modem
     return new Promise((resolve, reject) => {
         try{
             setTimeout(() => {
@@ -180,8 +202,8 @@ const getSignal = (modem) => {
                     })
                 }
                 if(result && result.status == "success"){
-                    if(/([0-9,]*)/.test(result.data.result)){
-                        let matches = /([0-9,]*)/.exec(result.data.result)
+                    if(/([0-9]*,[0-9])/.test(result.data.result)){
+                        let matches = /([0-9]*,[0-9])/.exec(result.data.result)
                         return resolve({
                             state: "success",
                             message: "Lấy signal thành công",
@@ -206,7 +228,17 @@ const getSignal = (modem) => {
     })
 }
 
-const getICCID = (modem) => {
+const getICCID = (port) => {
+    if(port.iccid){
+        return Promise.resolve({
+            state: "success",
+            message: "",
+            payload: {
+                iccid: port.iccid
+            }
+        })
+    }
+    let modem = port.modem
     return new Promise((resolve, reject) => {
         try{
             setTimeout(() => {
@@ -249,7 +281,17 @@ const getICCID = (modem) => {
     })
 }
 
-const getOperator = (modem) => {
+const getOperator = (port) => {
+    if(port.operator){
+        return Promise.resolve({
+            state: "success",
+            message: "",
+            payload: {
+                operator: port.operator
+            }
+        })
+    }
+    let modem = port.modem
     return new Promise(async(resolve, reject) => {
         try{
             modem.executeCommand("AT+COPS?", (result, error) => {
@@ -314,7 +356,18 @@ const getOperator = (modem) => {
     })
 }
 
-const getOwnNumber = (modem, operator) => {
+const getOwnNumber = (port) => {
+    if(port.msisdn){
+        return Promise.resolve({
+            state: "success",
+            message: "",
+            payload: {
+                msisdn: port.msisdn
+            }
+        })
+    }
+    let modem = port.modem
+    let operator = port.operator
     return new Promise(async(resolve, reject) => {
         await cancelUSSD(modem)
         try{
@@ -438,7 +491,9 @@ const getOwnNumber = (modem, operator) => {
     })
 }
 
-const getBalance = (modem, operator) => {
+const getBalance = (port) => {
+    let modem = port.modem
+    let operator = port.operator
     return new Promise(async(resolve, reject) => {
         await cancelUSSD(modem)
         try{
@@ -452,6 +507,7 @@ const getBalance = (modem, operator) => {
                     })
                 }, 30000)
                 parts.logic = (part) => {
+                    console.log(part)
                     if(part.includes("TKG")){
                         clearTimeout(timeout)
                         part = part.replace(".", "")
@@ -583,32 +639,33 @@ const getBalance = (modem, operator) => {
 
 const loadPort = (portIndex) => {
     return new Promise((resolve, reject) => {
-        initializeModem(global.ports[portIndex].modem).then((result) => {
+        initializeModem(global.ports[portIndex]).then((result) => {
             global.ports[portIndex].set("statement", result.message)
-            return deleteAllSMS(global.ports[portIndex].modem)
+            global.ports[portIndex].set("isInitial", true)
+            return deleteAllSMS(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
-            return getSignal(global.ports[portIndex].modem)
+            return getSignal(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
             global.ports[portIndex].set("signal", result.payload.signal)
-            return getIMEI(global.ports[portIndex].modem)
+            return getIMEI(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
-            global.ports[portIndex].set("imei", result.payload.iccid)
-            return getICCID(global.ports[portIndex].modem)
+            global.ports[portIndex].set("imei", result.payload.imei)
+            return getICCID(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
             global.ports[portIndex].set("iccid", result.payload.iccid)
-            return getOperator(global.ports[portIndex].modem)
+            return getOperator(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
             global.ports[portIndex].set("operator", result.payload.operator)
-            return getOwnNumber(global.ports[portIndex].modem, global.ports[portIndex].operator)
+            return getOwnNumber(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
             global.ports[portIndex].set("msisdn", result.payload.msisdn)
-            return getBalance(global.ports[portIndex].modem, global.ports[portIndex].operator)
+            return getBalance(global.ports[portIndex])
         }).then((result) => {
             global.ports[portIndex].set("statement", result.message)
             global.ports[portIndex].set("balance", result.payload.balance)
@@ -628,8 +685,14 @@ const loadPort = (portIndex) => {
     })
 }
 
-const loadPorts = () => {
+const loadPorts = async() => {
     let session = global.session
+    try{
+        for(let port of global.ports){
+            await port.modem.close((result) => {})
+        }
+    }catch (error){}
+
     return SerialPortGSM.list((error, ports) => {
         if(error){
             console.log(error)
@@ -680,7 +743,9 @@ const loadPorts = () => {
                         operator: "",
                         msisdn: "",
                         balance: "",
+                        smsCounter: "",
                         modem: modem,
+                        isInitial: false,
                         state: "closed",
                         status: "pending",
                         statement: "Cổng đóng",
@@ -698,13 +763,17 @@ const loadPorts = () => {
                         return global.ports[portIndex][propName]
                     }
                     global.ports[portIndex].close = () => {
+                        global.ports[portIndex].state = "closed"
+                        global.ports[portIndex].statement = "Cổng đóng"
+                    }
+                    global.ports[portIndex].clear = () => {
                         global.ports[portIndex].imei = ""
                         global.ports[portIndex].iccid = ""
                         global.ports[portIndex].operator = ""
                         global.ports[portIndex].msisdn = ""
                         global.ports[portIndex].balance = ""
-                        global.ports[portIndex].state = "closed"
-                        global.ports[portIndex].statement = "Cổng đóng"
+                        global.ports[portIndex].signal = ""
+                        global.ports[portIndex].smsCounter = ""
                     }
                     let selfLoad = async() => {
                         if(global.ports[portIndex].lock){
@@ -729,6 +798,7 @@ const loadPorts = () => {
                     }
                     selfLoad()
                     global.ports[portIndex].modem.on("onPutOut", () => {
+                        global.ports[portIndex].clear()
                         global.ports[portIndex].close()
                         selfLoad()
                     })
