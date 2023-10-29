@@ -1,14 +1,27 @@
 {
-  "name": "electron-serialport",
-  "version": "1.0.2",
-  "description": "A minimal Electron application with node serialport",
+  "name": "autocom",
+  "version": "1.0.0",
+  "description": "autocom",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder",
+    "watch": "nodemon --exec electron ."
   },
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:serialport/electron-serialport.git"
+  "build": {
+    "appId": "com.autocom",
+    "productName": "AutoCom",
+    "win": {
+      "target": "nsis"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "repository": "https://github.com/tienquocho2604/AutoCom",
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
   },
   "keywords": [
     "Electron",
@@ -20,12 +33,15 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "devDependencies": {
-    "electron": "^26.4.0"
+    "electron": "^26.4.2",
+    "electron-builder": "^24.6.4"
   },
   "dependencies": {
     "electron-reload": "^2.0.0-alpha.1",
+    "electron-updater": "^6.1.4",
     "md5": "^2.3.0",
     "node-schedule": "^2.1.1",
+    "nodemon": "^3.0.1",
     "serialport": "^10.3.0",
     "serialport-gsm": "^4.0.1",
     "socket.io": "^4.7.2"

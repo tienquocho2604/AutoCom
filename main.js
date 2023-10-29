@@ -1,15 +1,20 @@
 const { app, BrowserWindow } = require("electron")
+const { autoUpdater, AppUpdater } = require("electron-updater")
 const path = require("path")
 const url = require("url")
-const { loadPorts } = require("./src/service/portHandler")
-const { iSocket } = require("./socket")
+const { loadPorts } = require("./src/port")
+const { iSocket } = require("./src/socket")
 require("electron-reload")(__dirname, {
     // Note that the path to electron may vary according to the main file
     electron: require(`${__dirname}/node_modules/electron`)
-});
+})
 // Keep a global reference of the window object, if you don"t, the window will
 // be closed automatically when the JavaScript object is garbage collected.
+autoUpdater.autoDownload = false
+autoUpdater.autoInstallOnAppQuit = true
+
 global.ports = []
+global.io
 
 let mainWindow
 
@@ -29,7 +34,7 @@ function createWindow() {
 
     // and load the index.html of the app.
     mainWindow.loadURL(url.format({
-        pathname: path.join(__dirname, "index.html"),
+        pathname: path.join(__dirname, "src/resources/views/mainWindow.html"),
         protocol: "file:",
         slashes: true
     }))
@@ -53,6 +58,7 @@ app.on("ready", () => {
     createWindow()
     iSocket()
     loadPorts()
+    autoUpdater.checkForUpdates()
 })
 
 // Quit when all windows are closed.
@@ -72,3 +78,8 @@ app.on("activate", function() {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+
+autoUpdater.on("update-available", (info) => {
+    global.io.emit("update", info)
+})

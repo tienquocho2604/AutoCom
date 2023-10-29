@@ -1,25 +1,3 @@
-let SerialPortGSM = require("serialport-gsm")
-let MD5 = require("md5")
-
-const options = {
-    baudRate: 115200,
-    dataBits: 8,
-    stopBits: 1,
-    parity: "none",
-    rtscts: false,
-    xon: false,
-    xoff: false,
-    xany: false,
-    autoDeleteOnReceive: false,
-    enableConcatenation: true,
-    incomingCallIndication: true,
-    incomingSMSIndication: true,
-    pin: "",
-    customInitCommand: "",
-    cnmiCommand: "AT+CNMI=2,1,0,0,0",
-    logger: ""
-}
-
 const initializeModem = (port) => {
     let modem = port.modem
     if(port.isInitial){
@@ -59,6 +37,28 @@ const initializeModem = (port) => {
             return reject({
                 state: "fail",
                 message: "Mở cổng thất bại"
+            })
+        }
+    })
+}
+
+const getCFun = (port) => {
+    let modem = port.modem
+    return new Promise((resolve, reject) => {
+        try{
+            modem.executeCommand("AT+CGSN", (result, error) => {
+                if(error){
+                    return reject({
+                        state: "fail",
+                        message: "Lấy IMEI không thành công"
+                    })
+                }
+                console.log(result)
+            }, false, 10000)
+        }catch(error){
+            return reject({
+                state: "fail",
+                message: "Lấy CFun không thành công"
             })
         }
     })
@@ -218,7 +218,7 @@ const getICCID = (port) => {
                     state: "fail",
                     message: "Lấy ICCID không thành công"
                 })
-            }, 10000)
+            }, 5000)
             modem.executeCommand("AT+ICCID", (result, error) => {
                 if(error){
                     return reject({
@@ -657,133 +657,16 @@ const loadPort = (portIndex) => {
     })
 }
 
-const loadPorts = async() => {
-    let session = global.session
-    try{
-        for(let port of global.ports){
-            await port.modem.close((result) => {})
-        }
-    }catch (error){}
-
-    return SerialPortGSM.list((error, ports) => {
-        if(error){
-            console.log(error)
-            return reject(error)
-        }
-        ports = ports.filter((port) => {
-            if(port.serialNumber == undefined || port.locationId == undefined || port.vendorId == undefined || port.productId == undefined){
-                return false
-            }
-            return true
-        })
-        ports.sort((serialA, serialB) => {
-            let locationA = serialA.locationId.replace(/\./g, "")
-            let locationB = serialB.locationId.replace(/\./g, "")
-            if(locationA != locationB){
-                return locationA - locationB
-            }
-            let pnpA
-            let pnpB
-            if(/&([0-9]{4})/.test(serialA.pnpId)){
-                let matches = /&([0-9]{4})/.exec(serialA.pnpId)
-                pnpA = matches[1]
-            }
-            if(/&([0-9]{4})/.test(serialB.pnpId)){
-                let matches = /&([0-9]{4})/.exec(serialB.pnpId)
-                pnpB = matches[1]
-            }
-            return pnpA - pnpB
-        })
-        ports.map((port, index) => {
-            ports[index].session = session
-            ports[index].numod = index + 1
-        })
-        for(let port of ports){
-            let modem = SerialPortGSM.Modem()
-            try{
-                modem.open(port.path, options, async(error) => {
-                    if(error){
-                        return
-                    }
-                    let portIndex = global.ports.push({
-                        id: MD5(port.path),
-                        comName: port.path,
-                        numod: port.numod,
-                        imei: "",
-                        iccid: "",
-                        signal: "",
-                        operator: "",
-                        msisdn: "",
-                        balance: "",
-                        smsCounter: "",
-                        modem: modem,
-                        isInitial: false,
-                        state: "closed",
-                        status: "pending",
-                        statement: "Cổng đóng",
-                        lock: false,
-                        retries: 0,
-                    }) - 1
-                    global.ports[portIndex].index = portIndex
-                    global.ports[portIndex].get = (propName) => {
-                        return global.ports[portIndex][propName]
-                    }
-                    global.ports[portIndex].set = (propName, propValue) => {
-                        global.ports[portIndex].status = "processing"
-                        global.ports[portIndex][propName] = propValue
-                        global.ports[portIndex].status = "pending"
-                        return global.ports[portIndex][propName]
-                    }
-                    global.ports[portIndex].close = () => {
-                        global.ports[portIndex].state = "closed"
-                        global.ports[portIndex].statement = "Cổng đóng"
-                    }
-                    global.ports[portIndex].clear = () => {
-                        global.ports[portIndex].iccid = ""
-                        global.ports[portIndex].operator = ""
-                        global.ports[portIndex].msisdn = ""
-                        global.ports[portIndex].balance = ""
-                        global.ports[portIndex].signal = ""
-                        global.ports[portIndex].smsCounter = ""
-                    }
-                    let selfLoad = async() => {
-                        if(global.ports[portIndex].lock){
-                            setTimeout(() => {
-                                return selfLoad()
-                            }, 5000)
-                        }
-                        global.ports[portIndex].set("retries", global.ports[portIndex].retries + 1)
-                        global.ports[portIndex].set("lock", true)
-                        await loadPort(portIndex)
-                        .then(() => {
-                            global.ports[portIndex].set("state", "registed")
-                            global.ports[portIndex].set("lock", false)
-                        })
-                        .catch(() => {
-                            global.ports[portIndex].close()
-                            global.ports[portIndex].set("lock", false)
-                            setTimeout(() => {
-                                return selfLoad()
-                            }, 5000)
-                        })
-                    }
-                    selfLoad()
-                    global.ports[portIndex].modem.on("onPutOut", () => {
-                        global.ports[portIndex].clear()
-                        global.ports[portIndex].close()
-                        selfLoad()
-                    })
-                    global.ports[portIndex].modem.on("onPutIn", () => {
-                        global.ports[portIndex].set("statement", "Đã nhận sim, vui lòng chờ")
-                    })
-                })
-            }catch (error){
-                console.log(error)
-            }
-        }
-    })
-}
-
 module.exports = {
-    loadPorts
+    initializeModem,
+    cancelUSSD,
+    deleteAllSMS,
+    getIMEI,
+    getSignal,
+    getCFun,
+    getICCID,
+    getOperator,
+    getOwnNumber,
+    getBalance,
+    loadPort
 }
