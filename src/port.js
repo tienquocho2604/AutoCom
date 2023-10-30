@@ -108,8 +108,8 @@ const loadPorts = async() => {
                         return pick(global.ports[portIndex], useable)
                     }
                     global.ports[portIndex].cancelJobs = () => {
-                        for(let job in global.ports[portIndex].jobs){
-                            job.cancel()
+                        for(let index in global.ports[portIndex].jobs){
+                            global.ports[portIndex].jobs[index].cancel()
                         }
                     }
                     global.ports[portIndex].close = () => {
@@ -128,9 +128,6 @@ const loadPorts = async() => {
                     let selfLoad = async() => {
                         if(global.ports[portIndex].lock){
                             console.log("Dead Lock")
-                            setTimeout(() => {
-                                return selfLoad()
-                            }, 5000)
                         }
                         global.ports[portIndex].set("retries", global.ports[portIndex].retries + 1)
                         global.ports[portIndex].set("lock", true)
@@ -141,6 +138,7 @@ const loadPorts = async() => {
                             global.ports[portIndex].jobs.push(getSignalJob(global.ports[portIndex], "*/30 * * * * *"))
                         })
                         .catch((error) => {
+                            console.log(error)
                             global.ports[portIndex].close()
                             global.ports[portIndex].set("lock", false)
                             setTimeout(() => {

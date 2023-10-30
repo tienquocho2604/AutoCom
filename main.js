@@ -4,10 +4,10 @@ const path = require("path")
 const url = require("url")
 const { loadPorts } = require("./src/port")
 const { iSocket } = require("./src/socket")
-require("electron-reload")(__dirname, {
-    // Note that the path to electron may vary according to the main file
-    electron: require(`${__dirname}/node_modules/electron`)
-})
+// require("electron-reload")(__dirname, {
+//     // Note that the path to electron may vary according to the main file
+//     electron: require(`${__dirname}/node_modules/electron`)
+// })
 // Keep a global reference of the window object, if you don"t, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 autoUpdater.autoDownload = false
@@ -59,6 +59,25 @@ app.on("ready", () => {
     iSocket()
     loadPorts()
     autoUpdater.checkForUpdates()
+    autoUpdater.on('checking-for-update', () => {
+        console.log('Checking for update...');
+        global.io.emit("update", "Checking for update...")
+    });
+    
+    autoUpdater.on('update-available', () => {
+        console.log('Update available. Downloading...');
+        global.io.emit("update", "Update available. Downloading...")
+    });
+    
+    autoUpdater.on('update-not-available', () => {
+        console.log('No updates available.');
+        global.io.emit("update", "No updates available.")
+    });
+    
+    autoUpdater.on('update-downloaded', () => {
+        console.log('Update downloaded. Installing...');
+        autoUpdater.quitAndInstall();
+    });
 })
 
 // Quit when all windows are closed.
@@ -78,8 +97,3 @@ app.on("activate", function() {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
-
-
-autoUpdater.on("update-available", (info) => {
-    global.io.emit("update", info)
-})

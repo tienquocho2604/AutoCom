@@ -28,6 +28,7 @@
 </head>
 
 <body>
+    <div id="version">000</div>
     <nav>
         <div class="nav nav-tabs" id="main-nav" role="tablist">
           <a class="nav-item nav-link active" id="nav-port-tab" data-toggle="tab" href="#nav-port" role="tab">Cổng</a>
@@ -104,7 +105,7 @@
             MESSAGE_TABLE.bootstrapTable("append", message)
         })
         socket.on("update", (info) => {
-            console.log(message)
+            alert(info)
         })
     })
     $(function(){

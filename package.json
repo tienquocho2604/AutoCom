@@ -9,7 +9,7 @@
     "watch": "nodemon --exec electron ."
   },
   "build": {
-    "appId": "com.autocom",
+    "appId": "com.electron.autocom",
     "productName": "AutoCom",
     "win": {
       "target": "nsis"
@@ -21,17 +21,11 @@
   "repository": "https://github.com/tienquocho2604/AutoCom",
   "publish": {
     "provider": "github",
-    "releaseType": "release"
+    "releaseType": "release",
+    "forceDev": true
   },
-  "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
-  ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "TienQuocHo",
+  "license": "",
   "devDependencies": {
     "electron": "^27.0.2",
     "electron-builder": "^24.6.4"
