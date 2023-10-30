@@ -13,7 +13,6 @@ const iSocket = () => {
         }, 3000)
         let interval = setInterval(() => {
             io.emit("LOAD_PORTS", global.ports.map((port) => {
-                console.log("OK")
                 return port.useable()
             }))
         }, 3000)
