@@ -50,7 +50,7 @@ const getCFun = (port) => {
                 if(error){
                     return reject({
                         state: "fail",
-                        message: "Lấy IMEI không thành công"
+                        message: "Lấy CFun không thành công"
                     })
                 }
                 console.log(result)
@@ -59,6 +59,30 @@ const getCFun = (port) => {
             return reject({
                 state: "fail",
                 message: "Lấy CFun không thành công"
+            })
+        }
+    })
+}
+
+const fixLightOn = (port) => {
+    let modem = port.modem
+    return new Promise((resolve, reject) => {
+        try{
+            modem.executeCommand("AT+CFUN=0", (result, error) => {
+                setTimeout(() => {
+                    modem.executeCommand("AT+CFUN=1", (result, error) => {
+                        return resolve({
+                            state: "success",
+                            message: "Đang FixLightOn, vui lòng chờ"
+                        }) 
+                    }, false, 5000)
+                }, 3000)
+            }, false, 5000)
+        }catch(error){
+            console.log(error)
+            return reject({
+                state: "fail",
+                message: "Có lỗi khi FixLightOn"
             })
         }
     })
@@ -165,7 +189,7 @@ const getSignal = (port) => {
                     state: "fail",
                     message: "Lấy signal không thành công"
                 })
-            }, 10000)
+            }, 5000)
             modem.executeCommand("AT+CSQ", (result, error) => {
                 if(error){
                     return reject({
@@ -663,8 +687,8 @@ module.exports = {
     deleteAllSMS,
     getIMEI,
     getSignal,
-    getCFun,
     getICCID,
+    fixLightOn,
     getOperator,
     getOwnNumber,
     getBalance,

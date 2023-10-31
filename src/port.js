@@ -1,7 +1,7 @@
 const SerialPortGSM = require("serialport-gsm")
 const MD5 = require("md5")
-const { loadPort } = require("./models/port")
-const { getSignalJob, getCFunJob } = require("./schedule")
+const { loadPort, fixLightOn } = require("./models/port")
+const { getSignalJob } = require("./schedule")
 
 const options = {
     baudRate: 115200,
@@ -20,6 +20,31 @@ const options = {
     customInitCommand: "",
     cnmiCommand: "AT+CNMI=2,1,0,0,0",
     logger: ""
+}
+
+const selfLoad = async(portIndex) => {
+    if(global.ports[portIndex].lock){
+        console.log(`${global.ports[portIndex].comName}: DeadLock`)
+        // setTimeout(() => {
+        //     return selfLoad(portIndex)
+        // }, 5000)
+    }
+    global.ports[portIndex].set("retries", global.ports[portIndex].retries + 1)
+    global.ports[portIndex].set("lock", true)
+    await loadPort(portIndex)
+    .then(() => {
+        global.ports[portIndex].set("state", "registed")
+        global.ports[portIndex].set("lock", false)
+        global.ports[portIndex].jobs.push(getSignalJob(global.ports[portIndex], "*/30 * * * * *"))
+    })
+    .catch((error) => {
+        console.log(error)
+        global.ports[portIndex].close()
+        global.ports[portIndex].set("lock", false)
+        setTimeout(() => {
+            return selfLoad(portIndex)
+        }, 5000)
+    })
 }
 
 const loadPorts = async() => {
@@ -90,7 +115,7 @@ const loadPorts = async() => {
                         lock: false,
                         retries: 0,
                     }) - 1
-                    global.ports[portIndex].index = portIndex
+                    global.ports[portIndex].portIndex = portIndex
                     global.ports[portIndex].get = (propName) => {
                         return global.ports[portIndex][propName]
                     }
@@ -101,7 +126,7 @@ const loadPorts = async() => {
                         return global.ports[portIndex][propName]
                     }
                     global.ports[portIndex].useable = () => {
-                        let useable = ["id", "comName", "numod", "imei", "iccid", "signal", "operator", "msisdn", "balance", "smsCounter", "state", "status", "statement"]
+                        let useable = ["id", "portIndex", "comName", "numod", "imei", "iccid", "signal", "operator", "msisdn", "balance", "smsCounter", "state", "status", "statement"]
                         let pick = (obj, keys) => {
                             return Object.keys(obj).filter(k => keys.includes(k)).reduce((res, k) => Object.assign(res, {[k]: obj[k]}), {})
                         }
@@ -125,35 +150,18 @@ const loadPorts = async() => {
                         global.ports[portIndex].signal = ""
                         global.ports[portIndex].smsCounter = ""
                     }
-                    let selfLoad = async() => {
-                        if(global.ports[portIndex].lock){
-                            console.log("Dead Lock")
-                        }
-                        global.ports[portIndex].set("retries", global.ports[portIndex].retries + 1)
-                        global.ports[portIndex].set("lock", true)
-                        await loadPort(portIndex)
-                        .then(() => {
-                            global.ports[portIndex].set("state", "registed")
-                            global.ports[portIndex].set("lock", false)
-                            global.ports[portIndex].jobs.push(getSignalJob(global.ports[portIndex], "*/30 * * * * *"))
-                        })
-                        .catch((error) => {
-                            console.log(error)
-                            global.ports[portIndex].close()
-                            global.ports[portIndex].set("lock", false)
-                            setTimeout(() => {
-                                return selfLoad()
-                            }, 5000)
-                        })
+                    global.ports[portIndex].fixLightOn = () => {
+                        return fixLightOn(global.ports[portIndex])
                     }
-                    selfLoad()
+                    selfLoad(portIndex)
                     global.ports[portIndex].modem.on("onPutOut", () => {
                         global.ports[portIndex].clear()
                         global.ports[portIndex].close()
-                        selfLoad()
+                        selfLoad(portIndex)
                     })
                     global.ports[portIndex].modem.on("onPutIn", () => {
                         global.ports[portIndex].set("statement", "Đã nhận sim, vui lòng chờ")
+                        selfLoad(portIndex)
                     })
                     global.ports[portIndex].modem.on("onNewMessage", (messageDetails) => {
                         let messageDetail = messageDetails[0]
@@ -181,5 +189,6 @@ const loadPorts = async() => {
 }
 
 module.exports = {
-    loadPorts
+    loadPorts,
+    selfLoad
 }

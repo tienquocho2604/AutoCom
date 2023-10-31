@@ -19,11 +19,16 @@
     }
   },
   "repository": "https://github.com/tienquocho2604/AutoCom",
-  "publish": {
-    "provider": "github",
-    "releaseType": "release",
-    "forceDev": true
-  },
+  "publish": [
+    {
+      "provider": "github",
+      "releaseType": "release",
+      "owner": "tienquocho2604",
+      "repo": "AutoCom",
+      "token": "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",
+      "forceDev": true
+    }
+  ],
   "author": "TienQuocHo",
   "license": "",
   "devDependencies": {

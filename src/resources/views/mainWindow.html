@@ -28,13 +28,10 @@
 </head>
 
 <body>
-    <div id="version">000</div>
     <nav>
         <div class="nav nav-tabs" id="main-nav" role="tablist">
           <a class="nav-item nav-link active" id="nav-port-tab" data-toggle="tab" href="#nav-port" role="tab">Cổng</a>
           <a class="nav-item nav-link" id="nav-message-tab" data-toggle="tab" href="#nav-message" role="tab">Tin nhắn</a>
-          <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="tab" href="#nav-contact" role="tab" aria-controls="nav-contact" aria-selected="false">Gửi tin nhắn</a>
-          <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="tab" href="#nav-contact" role="tab" aria-controls="nav-contact" aria-selected="false">Cấu hình</a>
         </div>
       </nav>
       <div class="tab-content" id="nav-tabContent">
@@ -90,26 +87,26 @@
 </body>
 
 <script>
+    const socket = io("http://localhost:3000")
+    const communicate = (socket, payload) => {
+        socket.emit("communicate", payload)
+    }
     $(document).ready(() => {
-        const socket = io("http://localhost:3000")
         let PORT_TABLE = $("#PORT_TABLE")
-        socket.on("LOAD_PORTS", (ports) => {
-            PORT_TABLE.bootstrapTable("load", ports)
-        })
-        socket.on("PORTS", (ports) => {
+        socket.on("onLoadPort", (ports) => {
+            // console.log(ports)
             PORT_TABLE.bootstrapTable("load", ports)
         })
         let MESSAGE_TABLE = $("#MESSAGE_TABLE")
         socket.on("onNewMessage", (message) => {
-            console.log(message)
             MESSAGE_TABLE.bootstrapTable("append", message)
         })
-        socket.on("update", (info) => {
-            alert(info)
+        socket.on("onVersionUpdate", (payload) => {
+            alert(payload.message)
         })
     })
     $(function(){
         $("table").resizableColumns()
-    });
+    })
 </script>
 </html>
