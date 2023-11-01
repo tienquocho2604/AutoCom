@@ -17,7 +17,7 @@
 
     <link rel="stylesheet" href="http://dobtco.github.io/jquery-resizable-columns/dist/jquery.resizableColumns.css">
     <script src="http://dobtco.github.io/jquery-resizable-columns/dist/jquery.resizableColumns.min.js"></script>
-
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
 
     <style>
@@ -31,12 +31,15 @@
     <nav>
         <div class="nav nav-tabs" id="main-nav" role="tablist">
             <a class="nav-item nav-link active" id="nav-port-tab" data-toggle="tab" href="#nav-port" role="tab">Cổng</a>
-            <a class="nav-item nav-link" id="nav-message-tab" data-toggle="tab" href="#nav-message" role="tab">Tin nhắn</a>
+            <a class="nav-item nav-link" id="nav-message-tab" data-toggle="tab" href="#nav-message" role="tab">Tin
+                nhắn</a>
         </div>
     </nav>
     <div class="tab-content" id="nav-tabContent">
         <div class="tab-pane fade show active" id="nav-port" role="tabpanel" aria-labelledby="nav-port-tab">
-            <table id="PORT_TABLE" class="table table-bordered table-hover" style="border: 1px solid; margin-top: 1px; text-align: center;" data-toggle="table" data-click-to-select="true">
+            <table id="PORT_TABLE" class="table table-bordered table-hover"
+                style="border: 1px solid; margin-top: 1px; text-align: center;" data-toggle="table"
+                data-click-to-select="true">
                 <thead>
                     <tr>
                         <th data-checkbox="true"></th>
@@ -56,8 +59,25 @@
                 </thead>
             </table>
         </div>
+        <div id="contextMenu" class="context-menu">
+            <ul>
+                <li class="menu-item" id="refresh">Làm mới</li>
+                <!-- <li class="menu-item" id="get-phone">Lấy số điện thoại</li>
+                <li class="menu-item" id="get-balance">Lấy số dư</li> -->
+            </ul>
+        </div>
+
+        <div id="contextMenu2" class="context-menu">
+            <ul>
+                <li class="menu-item" id="refresh">Làm mới cổng đã chọn</li>
+                <!-- <li class="menu-item" id="get-phone">Lấy số điện thoại cổng đã chọn</li>
+                <li class="menu-item" id="get-balance">Lấy số dư cổng đã chọn</li> -->
+            </ul>
+        </div>
         <div class="tab-pane fade" id="nav-message" role="tabpanel" aria-labelledby="nav-message-tab">
-            <table id="MESSAGE_TABLE" class="table table-bordered table-hover" style="border: 1px solid; margin-top: 1px; text-align: center;" data-toggle="table" data-click-to-select="true">
+            <table id="MESSAGE_TABLE" class="table table-bordered table-hover"
+                style="border: 1px solid; margin-top: 1px; text-align: center;" data-toggle="table"
+                data-click-to-select="true">
                 <thead>
                     <tr>
                         <th data-field="comName">Tên cổng</th>
