@@ -17,74 +17,24 @@
 
     <link rel="stylesheet" href="http://dobtco.github.io/jquery-resizable-columns/dist/jquery.resizableColumns.css">
     <script src="http://dobtco.github.io/jquery-resizable-columns/dist/jquery.resizableColumns.min.js"></script>
+    <link rel="stylesheet" href="src/assets/css/style.css">
 
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
 
-    <style>
-        body {
-            font-size: 14px !important;
-        }
-
-        .context-menu {
-            display: none;
-            position: absolute;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            padding: 0;
-        }
-
-        .context-menu ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .context-menu ul li {
-            padding: 8px 12px;
-            cursor: pointer;
-        }
-
-        .context-menu ul li:hover {
-            background: #f2f2f2;
-        }
-
-        .nav-item {
-            user-select: none;
-        }
-
-        .selected-cell {
-            background-color: rgb(147, 147, 251);
-            color: white;
-            user-select: none;
-        }
-
-        td,
-        th {
-            user-select: none;
-        }
-    </style>
 </head>
 
 <body>
     <nav>
         <div class="nav nav-tabs" id="main-nav" role="tablist">
-            <a class="nav-item nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab"
-                aria-controls="nav-home" aria-selected="true">Cổng</a>
-            <a class="nav-item nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-sms" role="tab"
-                aria-controls="nav-profile" aria-selected="false">Tin nhắn</a>
-            <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="tab" href="#nav-send-sms" role="tab"
-                aria-controls="nav-contact" aria-selected="false">Gửi tin nhắn</a>
-            <a class="nav-item nav-link" id="nav-config-tab" data-toggle="tab" href="#nav-config" role="tab"
-                aria-controls="nav-config" aria-selected="false">Cấu hình</a>
+            <a class="nav-item nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true">Cổng</a>
+            <a class="nav-item nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-sms" role="tab" aria-controls="nav-profile" aria-selected="false">Tin nhắn</a>
+            <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="tab" href="#nav-send-sms" role="tab" aria-controls="nav-contact" aria-selected="false">Gửi tin nhắn</a>
+            <a class="nav-item nav-link" id="nav-config-tab" data-toggle="tab" href="#nav-config" role="tab" aria-controls="nav-config" aria-selected="false">Cấu hình</a>
         </div>
     </nav>
     <div class="tab-content" id="nav-tabContent">
         <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
-            <table id="listComTable" class="table table-bordered table-hover"
-                style="border: 1px solid; margin-top: 1px; text-align: center;" data-toggle="table"
-                data-click-to-select="true">
+            <table id="listComTable" class="table table-bordered table-hover" style="border: 1px solid; margin-top: 1px; text-align: center;" data-toggle="table" data-click-to-select="true">
                 <thead>
                     <tr>
                         <th><input type="checkbox" name="main_checkbox"></th>
@@ -203,7 +153,7 @@
         let currentMenu = null;
 
         // Hiển thị context menu
-        $("#listComTable").on("contextmenu", "tr", function (event) {
+        $("#listComTable").on("contextmenu", "tr", function(event) {
             event.preventDefault();
 
             let selectedPort = $(this);
@@ -240,7 +190,7 @@
 
             $(".menu-item").off("click"); // Xóa sự kiện click cũ
 
-            $(".menu-item").on("click", function () {
+            $(".menu-item").on("click", function() {
                 let option = this.id;
                 switch (option) {
                     case "refresh":
@@ -264,14 +214,14 @@
         });
 
         // Ẩn context menu khi click ra bên ngoài
-        $(document).on("click", function () {
+        $(document).on("click", function() {
             if (currentMenu) {
                 currentMenu.style.display = "none";
                 currentMenu = null;
             }
         });
 
-        $(document).on("contextmenu", function (event) {
+        $(document).on("contextmenu", function(event) {
             event.preventDefault();
             if (!$(event.target).closest("#listComTable").length) {
                 let selectedPort = portData.find(port => port.index === $(this).find("td:eq(1)").text());
@@ -291,7 +241,7 @@
 
                 $(".menu-item").off("click"); // Xóa sự kiện click cũ
 
-                $(".menu-item").on("click", function () {
+                $(".menu-item").on("click", function() {
                     let option = this.id;
                     switch (option) {
                         case "refresh":
@@ -315,7 +265,7 @@
             }
         });
 
-        $(document).on("click", "td", function () {
+        $(document).on("click", "td", function() {
             if (!$(this).find("input[type='checkbox']").length) {
                 $("td").removeClass("selected-cell");
                 $(this).addClass("selected-cell");
@@ -330,28 +280,28 @@
             input.remove();
         });
 
-        $(document).on('click', 'input[name="main_checkbox"]', function () {
+        $(document).on('click', 'input[name="main_checkbox"]', function() {
             if (this.checked) {
-                $('input[name="portCheckbox"]').each(function () {
+                $('input[name="portCheckbox"]').each(function() {
                     this.checked = true;
                 });
             } else {
-                $('input[name="portCheckbox"]').each(function () {
+                $('input[name="portCheckbox"]').each(function() {
                     this.checked = false;
                 });
             }
         });
 
-        $(document).on('change', 'input[name="portCheckbox"]', function () {
+        $(document).on('change', 'input[name="portCheckbox"]', function() {
             if ($('input[name="portCheckbox"]').length == $(
-                'input[name="portCheckbox"]:checked').length) {
+                    'input[name="portCheckbox"]:checked').length) {
                 $('input[name="main_checkbox"]').prop('checked', true);
             } else {
                 $('input[name="main_checkbox"]').prop('checked', false);
             }
         });
 
-        $(function () {
+        $(function() {
             $("table").resizableColumns();
         });
     });
