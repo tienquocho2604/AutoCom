@@ -1,15 +1,16 @@
 const { app, BrowserWindow } = require("electron")
-const { autoUpdater, AppUpdater } = require("electron-updater")
+const { autoUpdater } = require("electron-updater")
+require("dotenv").config()
 const path = require("path")
 const url = require("url")
 const { loadPorts } = require("./src/port")
 const { iSocket } = require("./src/socket")
-    // require("electron-reload")(__dirname, {
-    //     // Note that the path to electron may vary according to the main file
-    //     electron: require(`${__dirname}/node_modules/electron`)
-    // })
-    // Keep a global reference of the window object, if you don"t, the window will
-    // be closed automatically when the JavaScript object is garbage collected.
+// require("electron-reload")(__dirname, {
+//     // Note that the path to electron may vary according to the main file
+//     electron: require(`${__dirname}/node_modules/electron`)
+// })
+// Keep a global reference of the window object, if you don"t, the window will
+// be closed automatically when the JavaScript object is garbage collected.
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = true
 
