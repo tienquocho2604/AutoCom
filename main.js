@@ -5,10 +5,10 @@ const path = require("path")
 const url = require("url")
 const { loadPorts } = require("./src/port")
 const { iSocket } = require("./src/socket")
-// require("electron-reload")(__dirname, {
-//     // Note that the path to electron may vary according to the main file
-//     electron: require(`${__dirname}/node_modules/electron`)
-// })
+require("electron-reload")(__dirname, {
+    // Note that the path to electron may vary according to the main file
+    electron: require(`${__dirname}/node_modules/electron`)
+})
 // Keep a global reference of the window object, if you don"t, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 autoUpdater.autoDownload = true
@@ -17,10 +17,12 @@ autoUpdater.autoInstallOnAppQuit = true
 global.ports = []
 global.io
 global.version = app.getVersion()
+global.isLoggedIn = false
 
 let mainWindow
+let loginWindow
 
-function createWindow() {
+let createMainWindow = () => {
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 1800,
@@ -53,13 +55,50 @@ function createWindow() {
     })
 }
 
+let createLoginWindow = () => {
+    // Create the browser window.
+    loginWindow = new BrowserWindow({
+        width: 500,
+        height: 300,
+        autoHideMenuBar: true,
+        backgroundColor: "#ccc",
+        webPreferences: {
+            nodeIntegration: false, // to allow require
+            contextIsolation: false, // allow use with Electron 12+
+            preload: path.join(__dirname, "preload.js")
+        }
+    })
+
+    // and load the index.html of the app.
+    loginWindow.loadURL(url.format({
+        pathname: path.join(__dirname, "src/resources/views/loginWindow.html"),
+        protocol: "file:",
+        slashes: true
+    }))
+
+    // Open the DevTools.
+    loginWindow.webContents.openDevTools()
+
+    // Emitted when the window is closed.
+    loginWindow.on("closed", function() {
+        // Dereference the window object, usually you would store windows
+        // in an array if your app supports multi windows, this is the time
+        // when you should delete the corresponding element.
+        loginWindow = null
+    })
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
-    createWindow()
     iSocket()
-    loadPorts()
+    if(!global.isLoggedIn){
+        createLoginWindow()
+    }else {
+        createMainWindow()
+        loadPorts()
+    }
 })
 
 // Quit when all windows are closed.
